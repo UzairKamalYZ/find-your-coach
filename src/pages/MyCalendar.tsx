@@ -8,13 +8,12 @@ import { toast } from "sonner";
 
 const MyCalendar = () => {
   const { user, bookings, cancelBooking } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-
   const today = startOfToday();
   const sorted = useMemo(
     () => [...bookings].sort((a, b) => +parseISO(a.date) - +parseISO(b.date) || a.slot.localeCompare(b.slot)),
     [bookings],
   );
+  if (!user) return <Navigate to="/login" replace />;
   const upcoming = sorted.filter((b) => parseISO(b.date) >= today);
   const past = sorted.filter((b) => parseISO(b.date) < today).reverse();
 
