@@ -1,16 +1,177 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Link } from "react-router-dom";
+import { Search, Calendar, MapPin, Trophy, ArrowRight } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import TrainerCard from "@/components/TrainerCard";
+import VenueCard from "@/components/VenueCard";
+import { SPORTS, TRAINERS, VENUES } from "@/data/mock";
+import hero from "@/assets/hero-sports.jpg";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      <Navbar />
+
+      {/* HERO */}
+      <section className="relative isolate overflow-hidden bg-hero pb-24 pt-32 text-primary-foreground md:pb-32 md:pt-40">
+        <div className="grain absolute inset-0" />
+        <img
+          src={hero}
+          alt=""
+          width={1600}
+          height={1024}
+          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-luminosity"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" />
+
+        <div className="container relative">
+          <div className="max-w-3xl animate-float-up">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/5 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-accent backdrop-blur">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+              Multi-sport coaching marketplace
+            </span>
+            <h1 className="mt-6 font-display text-6xl leading-[0.9] text-balance md:text-8xl lg:text-9xl">
+              Train with the<br />
+              <span className="bg-gradient-accent bg-clip-text text-transparent">best in the game.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-primary-foreground/80 md:text-xl">
+              Discover certified coaches and book courts, pitches and stadiums for tennis, football, cricket and more — all in one place.
+            </p>
+
+            {/* Search bar */}
+            <div className="mt-10 flex flex-col gap-3 rounded-2xl bg-primary-foreground/10 p-3 backdrop-blur-md md:flex-row md:items-center">
+              <div className="flex flex-1 items-center gap-3 rounded-xl bg-background/95 px-4 py-3 text-primary">
+                <Trophy className="h-5 w-5 text-accent" />
+                <select className="w-full bg-transparent font-semibold focus:outline-none">
+                  <option>Any sport</option>
+                  {SPORTS.map((s) => <option key={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-1 items-center gap-3 rounded-xl bg-background/95 px-4 py-3 text-primary">
+                <MapPin className="h-5 w-5 text-accent" />
+                <input placeholder="City or postcode" className="w-full bg-transparent font-semibold placeholder:text-muted-foreground focus:outline-none" />
+              </div>
+              <Link
+                to="/trainers"
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-accent px-6 py-3 font-bold uppercase tracking-wider text-primary shadow-glow transition-transform hover:scale-[1.02]"
+              >
+                <Search className="h-5 w-5" /> Search
+              </Link>
+            </div>
+
+            <div className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
+              {[["500+", "Coaches"], ["120+", "Venues"], ["12K", "Sessions booked"]].map(([n, l]) => (
+                <div key={l}>
+                  <p className="font-display text-4xl text-accent">{n}</p>
+                  <p className="text-xs uppercase tracking-widest text-primary-foreground/60">{l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SPORTS STRIP */}
+      <section className="border-y border-border bg-card">
+        <div className="container flex gap-3 overflow-x-auto py-6">
+          {SPORTS.map((s) => (
+            <Link
+              key={s.name}
+              to="/trainers"
+              className="group flex shrink-0 items-center gap-3 rounded-full border border-border bg-background px-5 py-3 transition-all hover:border-accent hover:shadow-card"
+            >
+              <span className="text-2xl">{s.emoji}</span>
+              <span className="font-bold uppercase tracking-wider text-primary group-hover:text-accent">{s.name}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="container py-20 md:py-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">How it works</p>
+          <h2 className="mt-3 font-display text-5xl text-primary md:text-6xl">From search to session in minutes</h2>
+        </div>
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {[
+            { icon: Search, title: "Find your coach", desc: "Filter by sport, city, price and rating." },
+            { icon: Calendar, title: "Pick a time slot", desc: "See live availability on each trainer's calendar." },
+            { icon: Trophy, title: "Train & improve", desc: "Show up at the venue. Level up. Repeat." },
+          ].map((s, i) => (
+            <div
+              key={s.title}
+              className="group relative animate-float-up overflow-hidden rounded-2xl border border-border bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:border-accent"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <div className="absolute -right-6 -top-6 font-display text-[120px] leading-none text-muted opacity-60">
+                0{i + 1}
+              </div>
+              <s.icon className="relative h-10 w-10 text-accent" />
+              <h3 className="relative mt-6 font-display text-3xl text-primary">{s.title}</h3>
+              <p className="relative mt-2 text-muted-foreground">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURED TRAINERS */}
+      <section className="bg-muted/40 py-20 md:py-28">
+        <div className="container">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Top rated</p>
+              <h2 className="mt-2 font-display text-5xl text-primary md:text-6xl">Featured Coaches</h2>
+            </div>
+            <Link to="/trainers" className="group hidden items-center gap-2 text-sm font-bold uppercase tracking-wider text-primary md:flex">
+              View all <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {TRAINERS.map((t, i) => <TrainerCard key={t.id} trainer={t} index={i} />)}
+          </div>
+        </div>
+      </section>
+
+      {/* VENUES */}
+      <section className="container py-20 md:py-28">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Where you train</p>
+            <h2 className="mt-2 font-display text-5xl text-primary md:text-6xl">Premium Venues</h2>
+          </div>
+          <Link to="/venues" className="group hidden items-center gap-2 text-sm font-bold uppercase tracking-wider text-primary md:flex">
+            View all <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {VENUES.map((v, i) => <VenueCard key={v.id} venue={v} index={i} />)}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="container pb-24">
+        <div className="relative overflow-hidden rounded-3xl bg-hero p-10 text-primary-foreground shadow-elevate md:p-16">
+          <div className="grain absolute inset-0" />
+          <div className="relative grid items-center gap-8 md:grid-cols-[1fr_auto]">
+            <div>
+              <h2 className="font-display text-5xl leading-none md:text-6xl">Ready to step up your game?</h2>
+              <p className="mt-4 max-w-xl text-primary-foreground/80">Join thousands of athletes training with verified coaches across the UK.</p>
+            </div>
+            <Link to="/trainers" className="rounded-full bg-gradient-accent px-8 py-4 text-center font-bold uppercase tracking-wider text-primary shadow-glow transition-transform hover:scale-105">
+              Book your first session
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-border bg-card py-10">
+        <div className="container flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
+          <p>© {new Date().getFullYear()} FindMyTrainer. All rights reserved.</p>
+          <p className="font-bold uppercase tracking-widest text-primary">Train · Compete · Win</p>
+        </div>
+      </footer>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
