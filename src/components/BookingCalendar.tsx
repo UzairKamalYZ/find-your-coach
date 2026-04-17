@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { addDays, format, isSameDay, startOfToday } from "date-fns";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import type { Trainer } from "@/data/mock";
+import { useAuth } from "@/context/AuthContext";
 
 const SLOTS = ["08:00", "09:00", "10:00", "12:00", "14:00", "15:00", "17:00", "18:00", "19:00"];
 
@@ -11,8 +13,9 @@ const BookingCalendar = ({ trainer }: { trainer: Trainer }) => {
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(today, i)), [today]);
   const [selectedDay, setSelectedDay] = useState<Date>(days[0]);
   const [slot, setSlot] = useState<string | null>(null);
+  const { user, addBooking } = useAuth();
+  const navigate = useNavigate();
 
-  // pseudo-random unavailability
   const unavailable = (d: Date, time: string) => {
     const hash = (d.getDate() + parseInt(time)) % 4;
     return hash === 0;
@@ -20,8 +23,23 @@ const BookingCalendar = ({ trainer }: { trainer: Trainer }) => {
 
   const handleBook = () => {
     if (!slot) return;
+    if (!user) {
+      toast.error("Please sign in to book", { description: "Redirecting to login..." });
+      setTimeout(() => navigate("/login"), 600);
+      return;
+    }
+    addBooking({
+      trainerId: trainer.id,
+      trainerName: trainer.name,
+      trainerImage: trainer.image,
+      sport: trainer.sport,
+      date: selectedDay.toISOString(),
+      slot,
+      price: trainer.hourlyRate,
+    });
     toast.success("Booking confirmed!", {
       description: `${trainer.name} · ${format(selectedDay, "EEE d MMM")} at ${slot}`,
+      action: { label: "View", onClick: () => navigate("/my-calendar") },
     });
     setSlot(null);
   };
