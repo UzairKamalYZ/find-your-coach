@@ -1,0 +1,20 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope: openid, profile, email
+
+app:
+  frontend-url: http://localhost:5173
+  jwt:
+    private-key: ""
+    public-key: ""
+    access-token-ttl: 900
+    refresh-token-ttl: 2592000
