@@ -1,10 +1,23 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Calendar, MapPin, Trophy, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TrainerCard from "@/components/TrainerCard";
 import VenueCard from "@/components/VenueCard";
 import { SPORTS, TRAINERS, VENUES } from "@/data/mock";
-import hero from "@/assets/hero-sports.jpg";
+import sportTennis from "@/assets/sport-tennis.jpg";
+import sportFootball from "@/assets/sport-football.jpg";
+import sportBasketball from "@/assets/sport-basketball.jpg";
+import sportCricket from "@/assets/sport-cricket.jpg";
+
+const ROTATING_SPORTS = ["Tennis", "Football", "Cricket", "Basketball", "Badminton", "Swimming"];
+
+const HERO_PHOTOS = [
+  { src: sportFootball, alt: "Footballer striking a ball under stadium lights", label: "Football" },
+  { src: sportTennis, alt: "Tennis player serving on a clay court", label: "Tennis" },
+  { src: sportBasketball, alt: "Basketball player dunking in an arena", label: "Basketball" },
+  { src: sportCricket, alt: "Cricket batsman playing a drive at dusk", label: "Cricket" },
+];
 
 const Index = () => {
   return (
