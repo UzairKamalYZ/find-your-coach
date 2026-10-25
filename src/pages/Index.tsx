@@ -44,11 +44,10 @@ const Index = () => {
             </span>
             <h1 className="mt-6 font-display text-6xl leading-[0.9] text-balance md:text-8xl">
               Train for<br />
-              <span
-                key={sportIndex}
-                className="inline-block animate-float-up bg-gradient-accent bg-clip-text text-transparent"
-              >
-                {ROTATING_SPORTS[sportIndex]}.
+              <span key={sportIndex} className="inline-block animate-float-up">
+                <span className="bg-gradient-accent bg-clip-text text-transparent">
+                  {ROTATING_SPORTS[sportIndex]}.
+                </span>
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-primary-foreground/80 md:text-xl">
