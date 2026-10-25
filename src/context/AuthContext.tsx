@@ -1,11 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-
-export type User = {
-  email: string;
-  name: string;
-  city: string;
-  avatar?: string;
-};
+import { AccountRole, SocialProvider, User, createSocialDemoUser, normalizeUser } from "@/lib/demo-account";
+export type { User } from "@/lib/demo-account";
 
 export type Booking = {
   id: string;
@@ -23,7 +18,8 @@ type AuthContextType = {
   user: User | null;
   bookings: Booking[];
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, city: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, city: string, role: AccountRole, phone: string) => Promise<void>;
+  socialLogin: (provider: SocialProvider, role: AccountRole) => Promise<void>;
   logout: () => void;
   updateProfile: (patch: Partial<User>) => void;
   addBooking: (b: Omit<Booking, "id" | "createdAt">) => void;
@@ -34,6 +30,12 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const USER_KEY = "fmt_user";
 const BOOKINGS_KEY = "fmt_bookings";
+const ACCOUNTS_KEY = "fmt_demo_accounts";
+
+const readAccounts = (): Record<string, User> => {
+  try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "{}"); }
+  catch { return {}; }
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,14 +43,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const u = localStorage.getItem(USER_KEY);
-    if (u) setUser(JSON.parse(u));
+    if (u) {
+      try { setUser(normalizeUser(JSON.parse(u))); } catch { localStorage.removeItem(USER_KEY); }
+    }
     const b = localStorage.getItem(BOOKINGS_KEY);
-    if (b) setBookings(JSON.parse(b));
+    if (b) {
+      try { setBookings(JSON.parse(b)); } catch { localStorage.removeItem(BOOKINGS_KEY); }
+    }
   }, []);
 
   const persistUser = (u: User | null) => {
     setUser(u);
-    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    if (u) {
+      localStorage.setItem(USER_KEY, JSON.stringify(u));
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify({ ...readAccounts(), [u.email.toLowerCase()]: u }));
+    }
     else localStorage.removeItem(USER_KEY);
   };
 
@@ -58,13 +67,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, _password: string) => {
-    // Mock: accept any credentials, derive name from email
+    // Demonstration only: no password is stored or validated.
+    const saved = readAccounts()[email.trim().toLowerCase()];
+    if (saved) { persistUser(normalizeUser(saved)); return; }
     const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    persistUser({ email, name, city: "London" });
+    persistUser({ email: email.trim(), name, city: "", role: "trainee", provider: "Email" });
   };
 
-  const signup = async (email: string, _password: string, name: string, city: string) => {
-    persistUser({ email, name, city });
+  const signup = async (email: string, _password: string, name: string, city: string, role: AccountRole, phone: string) => {
+    persistUser({ email: email.trim(), name: name.trim(), city: city.trim(), role, phone: phone.trim(), provider: "Email" });
+  };
+
+  const socialLogin = async (provider: SocialProvider, role: AccountRole) => {
+    const demo = createSocialDemoUser(provider, role);
+    const saved = readAccounts()[demo.email];
+    persistUser(saved ? { ...normalizeUser(saved), role, provider } : demo);
   };
 
   const logout = () => persistUser(null);
@@ -84,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, bookings, login, signup, logout, updateProfile, addBooking, cancelBooking }}>
+    <AuthContext.Provider value={{ user, bookings, login, signup, socialLogin, logout, updateProfile, addBooking, cancelBooking }}>
       {children}
     </AuthContext.Provider>
   );
