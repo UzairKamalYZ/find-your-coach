@@ -20,6 +20,13 @@ const HERO_PHOTOS = [
 ];
 
 const Index = () => {
+  const [sportIndex, setSportIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setSportIndex((i) => (i + 1) % ROTATING_SPORTS.length), 2200);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -27,24 +34,22 @@ const Index = () => {
       {/* HERO */}
       <section className="relative isolate overflow-hidden bg-hero pb-24 pt-32 text-primary-foreground md:pb-32 md:pt-40">
         <div className="grain absolute inset-0" />
-        <img
-          src={hero}
-          alt=""
-          width={1600}
-          height={1024}
-          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-luminosity"
-        />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent" />
 
-        <div className="container relative">
-          <div className="max-w-3xl animate-float-up">
+        <div className="container relative grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+          <div className="animate-float-up">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/5 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-accent backdrop-blur">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
               Multi-sport coaching marketplace
             </span>
-            <h1 className="mt-6 font-display text-6xl leading-[0.9] text-balance md:text-8xl lg:text-9xl">
-              Train with the<br />
-              <span className="bg-gradient-accent bg-clip-text text-transparent">best in the game.</span>
+            <h1 className="mt-6 font-display text-6xl leading-[0.9] text-balance md:text-8xl">
+              Train for<br />
+              <span
+                key={sportIndex}
+                className="inline-block animate-float-up bg-gradient-accent bg-clip-text text-transparent"
+              >
+                {ROTATING_SPORTS[sportIndex]}.
+              </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-primary-foreground/80 md:text-xl">
               Discover certified coaches and book courts, pitches and stadiums for tennis, football, cricket and more — all in one place.
@@ -79,6 +84,30 @@ const Index = () => {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Sports photo collage */}
+          <div className="relative hidden animate-float-up grid-cols-2 gap-4 lg:grid" style={{ animationDelay: "150ms" }}>
+            {HERO_PHOTOS.map((p, i) => (
+              <div
+                key={p.label}
+                className={`group relative overflow-hidden rounded-2xl border border-primary-foreground/10 shadow-elevate ${
+                  i % 2 === 1 ? "translate-y-8" : ""
+                }`}
+              >
+                <img
+                  src={p.src}
+                  alt={p.alt}
+                  width={768}
+                  height={1024}
+                  className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent" />
+                <span className="absolute bottom-3 left-3 font-display text-2xl uppercase tracking-wide text-primary-foreground">
+                  {p.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
