@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Dumbbell, User, LogIn } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-const Navbar = () => {
+const Navbar = ({ solid = false }: { solid?: boolean }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -14,7 +14,7 @@ const Navbar = () => {
   const initials = user?.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-50">
+    <header className={`absolute top-0 left-0 right-0 z-50 ${solid ? "bg-primary" : ""}`}>
       <div className="container flex items-center justify-between py-5">
         <Link to="/" className="flex items-center gap-2 text-primary-foreground">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-accent shadow-glow">

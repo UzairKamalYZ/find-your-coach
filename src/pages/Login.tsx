@@ -40,7 +40,7 @@ const Login = () => {
     if (mode === "signup" && !role) return;
     setLoading(true);
     try {
-      await socialLogin(provider, role ?? "trainee");
+      await socialLogin(provider, role ?? undefined);
       toast.success(`${provider} demonstration signed in — sample name and email used`);
       navigate("/profile");
     } catch { toast.error("Unable to continue. Please try again."); }
@@ -50,7 +50,7 @@ const Login = () => {
   const roleStep = mode === "signup" && step === "role";
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar solid />
       <main className="container mx-auto max-w-xl pb-16 pt-28">
         <Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> FindMyTrainer</Link>
         <div className="mb-7 flex items-center gap-3">

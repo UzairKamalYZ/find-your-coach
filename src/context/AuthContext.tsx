@@ -19,7 +19,7 @@ type AuthContextType = {
   bookings: Booking[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, city: string, role: AccountRole, phone: string) => Promise<void>;
-  socialLogin: (provider: SocialProvider, role: AccountRole) => Promise<void>;
+  socialLogin: (provider: SocialProvider, role?: AccountRole) => Promise<void>;
   logout: () => void;
   updateProfile: (patch: Partial<User>) => void;
   addBooking: (b: Omit<Booking, "id" | "createdAt">) => void;
@@ -78,10 +78,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     persistUser({ email: email.trim(), name: name.trim(), city: city.trim(), role, phone: phone.trim(), provider: "Email" });
   };
 
-  const socialLogin = async (provider: SocialProvider, role: AccountRole) => {
-    const demo = createSocialDemoUser(provider, role);
+  const socialLogin = async (provider: SocialProvider, role?: AccountRole) => {
+    const demo = createSocialDemoUser(provider, role ?? "trainee");
     const saved = readAccounts()[demo.email];
-    persistUser(saved ? { ...normalizeUser(saved), role, provider } : demo);
+    persistUser(saved ? { ...normalizeUser(saved), role: role ?? normalizeUser(saved).role, provider } : demo);
   };
 
   const logout = () => persistUser(null);

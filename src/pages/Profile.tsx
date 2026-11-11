@@ -29,7 +29,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar solid />
       <main className="container pb-16 pt-28">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
           <div><p className="text-xs font-bold uppercase text-accent">My account</p><h1 className="mt-1 font-display text-5xl text-foreground">Your profile</h1></div>

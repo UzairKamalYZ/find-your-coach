@@ -40,4 +40,12 @@ describe("demonstration accounts", () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
     await waitFor(() => expect(result.current.user?.role).toBe("trainee"));
   });
+
+  it("retains a trainer's role on returning social sign-in", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await act(async () => result.current.socialLogin("Apple", "trainer"));
+    act(() => result.current.logout());
+    await act(async () => result.current.socialLogin("Apple"));
+    expect(result.current.user?.role).toBe("trainer");
+  });
 });
