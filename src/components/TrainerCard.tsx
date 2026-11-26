@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { Star, MapPin } from "lucide-react";
-import type { Trainer } from "@/data/mock";
+import type { Trainer } from "@/lib/types";
+import { resolveImage } from "@/lib/images";
+import { money } from "@/lib/format";
 
 const TrainerCard = ({ trainer, index = 0 }: { trainer: Trainer; index?: number }) => {
   return (
@@ -11,7 +13,7 @@ const TrainerCard = ({ trainer, index = 0 }: { trainer: Trainer; index?: number 
     >
       <div className="relative aspect-[4/5] overflow-hidden">
         <img
-          src={trainer.image}
+          src={resolveImage(trainer.image)}
           alt={`${trainer.name}, ${trainer.sport} coach`}
           loading="lazy"
           width={640}
@@ -38,7 +40,7 @@ const TrainerCard = ({ trainer, index = 0 }: { trainer: Trainer; index?: number 
       <div className="flex items-center justify-between bg-card px-5 py-4">
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">From</p>
-          <p className="font-display text-2xl text-primary">£{trainer.hourlyRate}<span className="text-base text-muted-foreground">/hr</span></p>
+          <p className="font-display text-2xl text-primary">{money(trainer.hourlyRate)}<span className="text-base text-muted-foreground">/hr</span></p>
         </div>
         <span className="rounded-full bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
           Book →

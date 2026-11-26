@@ -1,107 +1,118 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { AccountRole, SocialProvider, User, createSocialDemoUser, normalizeUser } from "@/lib/demo-account";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { api, setOnAuthLost, tokenStore } from "@/lib/api";
+import type { AuthResponse, Booking, VenueBooking } from "@/lib/types";
+import { AccountRole, SocialProvider, User } from "@/lib/demo-account";
 export type { User } from "@/lib/demo-account";
+export type { Booking } from "@/lib/types";
 
-export type Booking = {
-  id: string;
-  trainerId: string;
-  trainerName: string;
-  trainerImage: string;
-  sport: string;
-  date: string; // ISO
-  slot: string; // "HH:mm"
-  price: number;
-  createdAt: string;
-};
+export type ProfilePatch = Partial<Pick<User, "name" | "city" | "phone" | "avatar" | "bio" | "sports" | "goals" | "level" | "experience" | "qualifications">>;
 
 type AuthContextType = {
   user: User | null;
+  /** False until the stored session has been checked on first load. */
+  ready: boolean;
   bookings: Booking[];
+  venueBookings: VenueBooking[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, city: string, role: AccountRole, phone: string) => Promise<void>;
   socialLogin: (provider: SocialProvider, role?: AccountRole) => Promise<void>;
-  logout: () => void;
-  updateProfile: (patch: Partial<User>) => void;
-  addBooking: (b: Omit<Booking, "id" | "createdAt">) => void;
-  cancelBooking: (id: string) => void;
+  logout: () => Promise<void>;
+  updateProfile: (patch: ProfilePatch) => Promise<void>;
+  addBooking: (b: { trainerId: string; date: string; slot: string; notes?: string }) => Promise<Booking>;
+  cancelBooking: (id: string, reason?: string) => Promise<void>;
+  refreshBookings: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const USER_KEY = "fmt_user";
-const BOOKINGS_KEY = "fmt_bookings";
-const ACCOUNTS_KEY = "fmt_demo_accounts";
-
-const readAccounts = (): Record<string, User> => {
-  try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "{}"); }
-  catch { return {}; }
-};
+const LEGACY_KEYS = ["fmt_user", "fmt_bookings", "fmt_demo_accounts"];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [venueBookings, setVenueBookings] = useState<VenueBooking[]>([]);
 
-  useEffect(() => {
-    const u = localStorage.getItem(USER_KEY);
-    if (u) {
-      try { setUser(normalizeUser(JSON.parse(u))); } catch { localStorage.removeItem(USER_KEY); }
-    }
-    const b = localStorage.getItem(BOOKINGS_KEY);
-    if (b) {
-      try { setBookings(JSON.parse(b)); } catch { localStorage.removeItem(BOOKINGS_KEY); }
-    }
+  const clear = useCallback(() => {
+    tokenStore.set(null);
+    setUser(null);
+    setBookings([]);
+    setVenueBookings([]);
   }, []);
 
-  const persistUser = (u: User | null) => {
-    setUser(u);
-    if (u) {
-      localStorage.setItem(USER_KEY, JSON.stringify(u));
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify({ ...readAccounts(), [u.email.toLowerCase()]: u }));
+  const refreshBookings = useCallback(async () => {
+    if (!tokenStore.get()) return;
+    const [b, v] = await Promise.all([api<Booking[]>("/bookings"), api<VenueBooking[]>("/venue-bookings")]);
+    setBookings(b ?? []);
+    setVenueBookings(v ?? []);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!tokenStore.get()) return;
+    setUser(await api<User>("/me"));
+  }, []);
+
+  useEffect(() => {
+    LEGACY_KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } });
+    setOnAuthLost(clear);
+    (async () => {
+      if (tokenStore.get()) {
+        try {
+          setUser(await api<User>("/me"));
+          await refreshBookings();
+        } catch {
+          clear();
+        }
+      }
+      setReady(true);
+    })();
+    return () => setOnAuthLost(null);
+  }, [clear, refreshBookings]);
+
+  const accept = async (res: AuthResponse) => {
+    tokenStore.set({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+    setUser(res.user);
+    try { await refreshBookings(); } catch { /* bookings load lazily later */ }
+  };
+
+  const login = async (email: string, password: string) =>
+    accept(await api<AuthResponse>("/auth/login", { method: "POST", auth: false, body: { email: email.trim(), password } }));
+
+  const signup = async (email: string, password: string, name: string, city: string, role: AccountRole, phone: string) =>
+    accept(await api<AuthResponse>("/auth/register", {
+      method: "POST", auth: false,
+      body: { email: email.trim(), password, name: name.trim(), city: city.trim(), role, phone: phone.trim() || undefined },
+    }));
+
+  const socialLogin = async (provider: SocialProvider, role?: AccountRole) =>
+    accept(await api<AuthResponse>("/auth/social", { method: "POST", auth: false, body: { provider, role } }));
+
+  const logout = async () => {
+    const refreshToken = tokenStore.get()?.refreshToken;
+    clear();
+    if (refreshToken) {
+      try { await api("/auth/logout", { method: "POST", auth: false, body: { refreshToken } }); } catch { /* already signed out locally */ }
     }
-    else localStorage.removeItem(USER_KEY);
   };
 
-  const persistBookings = (b: Booking[]) => {
-    setBookings(b);
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(b));
+  const updateProfile = async (patch: ProfilePatch) => {
+    setUser(await api<User>("/me", { method: "PATCH", body: patch }));
   };
 
-  const login = async (email: string, _password: string) => {
-    // Demonstration only: no password is stored or validated.
-    const saved = readAccounts()[email.trim().toLowerCase()];
-    if (saved) { persistUser(normalizeUser(saved)); return; }
-    const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    persistUser({ email: email.trim(), name, city: "", role: "trainee", provider: "Email" });
+  const addBooking = async (b: { trainerId: string; date: string; slot: string; notes?: string }) => {
+    const created = await api<Booking>("/bookings", { method: "POST", body: b });
+    setBookings((prev) => [...prev, created].sort((x, y) => x.startsAt.localeCompare(y.startsAt)));
+    return created;
   };
 
-  const signup = async (email: string, _password: string, name: string, city: string, role: AccountRole, phone: string) => {
-    persistUser({ email: email.trim(), name: name.trim(), city: city.trim(), role, phone: phone.trim(), provider: "Email" });
-  };
-
-  const socialLogin = async (provider: SocialProvider, role?: AccountRole) => {
-    const demo = createSocialDemoUser(provider, role ?? "trainee");
-    const saved = readAccounts()[demo.email];
-    persistUser(saved ? { ...normalizeUser(saved), role: role ?? normalizeUser(saved).role, provider } : demo);
-  };
-
-  const logout = () => persistUser(null);
-
-  const updateProfile = (patch: Partial<User>) => {
-    if (!user) return;
-    persistUser({ ...user, ...patch });
-  };
-
-  const addBooking = (b: Omit<Booking, "id" | "createdAt">) => {
-    const next: Booking = { ...b, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-    persistBookings([...bookings, next]);
-  };
-
-  const cancelBooking = (id: string) => {
-    persistBookings(bookings.filter((b) => b.id !== id));
+  const cancelBooking = async (id: string, reason?: string) => {
+    await api<Booking>(`/bookings/${id}/cancel`, { method: "POST", body: { reason } });
+    setBookings((prev) => prev.filter((b) => b.id !== id));
   };
 
   return (
-    <AuthContext.Provider value={{ user, bookings, login, signup, socialLogin, logout, updateProfile, addBooking, cancelBooking }}>
+    <AuthContext.Provider value={{ user, ready, bookings, venueBookings, login, signup, socialLogin, logout, updateProfile, addBooking, cancelBooking, refreshBookings, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

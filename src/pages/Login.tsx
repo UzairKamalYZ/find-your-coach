@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, Dumbbell, GraduationCap, Apple, Facebook, Mail } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AccountField from "@/components/AccountField";
@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { AccountRole, SocialProvider } from "@/lib/demo-account";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api";
 
 const providers: SocialProvider[] = ["Google", "Apple", "Facebook", "Microsoft"];
 const Login = () => {
   const { user, login, signup, socialLogin } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<AccountRole | null>(null);
   const [step, setStep] = useState<"role" | "details">("role");
@@ -21,7 +23,7 @@ const Login = () => {
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  if (user) return <Navigate to="/profile" replace />;
+  if (user) return <Navigate to={from ?? (user.role === "admin" ? "/admin" : user.role === "trainer" ? "/coach" : "/profile")} replace />;
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -30,9 +32,8 @@ const Login = () => {
     try {
       if (mode === "login") await login(email, password);
       else if (role) await signup(email, password, name, city, role, phone);
-      toast.success(mode === "login" ? "Welcome back!" : "Demo account created!");
-      navigate("/profile");
-    } catch { toast.error("Unable to continue. Please try again."); }
+      toast.success(mode === "login" ? "Welcome back!" : "Account created!");
+    } catch (e) { toast.error(mode === "login" ? "Sign in failed" : "Sign up failed", { description: errorMessage(e) }); }
     finally { setLoading(false); }
   };
 
@@ -42,8 +43,7 @@ const Login = () => {
     try {
       await socialLogin(provider, role ?? undefined);
       toast.success(`${provider} demonstration signed in — sample name and email used`);
-      navigate("/profile");
-    } catch { toast.error("Unable to continue. Please try again."); }
+    } catch (e) { toast.error("Unable to continue", { description: errorMessage(e) }); }
     finally { setLoading(false); }
   };
 
@@ -100,11 +100,21 @@ const Login = () => {
                 <AccountField label="City" value={city} onChange={setCity} autoComplete="address-level2" placeholder="Your city" required maxLength={100} />
               </div>}
               <AccountField label="Password" type="password" value={password} onChange={setPassword} autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="Password" required minLength={mode === "signup" ? 8 : 1} />
-              <Button type="submit" disabled={loading} className="h-12 w-full bg-accent text-accent-foreground hover:bg-accent/90">{loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create demo account"}<ArrowRight /></Button>
+              <Button type="submit" disabled={loading} className="h-12 w-full bg-accent text-accent-foreground hover:bg-accent/90">{loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}<ArrowRight /></Button>
             </form>
           </section>
         )}
-        <p className="mt-6 text-center text-xs text-muted-foreground">Demo accounts only · No real social connection · Passwords are not saved or verified</p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">Social buttons are demo sign-ins (no real provider connection) · Email accounts use a securely hashed password</p>
+        {mode === "login" && (
+          <details className="mt-4 rounded-lg border border-border p-4 text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-semibold text-foreground">Demo accounts</summary>
+            <ul className="mt-2 space-y-1">
+              <li>Trainee: sam@findmytrainer.dev / Trainee@123</li>
+              <li>Coach: marcus@findmytrainer.dev / Trainer@123</li>
+              <li>Admin: admin@findmytrainer.dev / Admin@12345</li>
+            </ul>
+          </details>
+        )}
       </main>
     </div>
   );

@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // The Spring Boot backend (backend/) runs on 8081; proxy API calls so the browser stays same-origin.
+    proxy: {
+      "/api": { target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8081", changeOrigin: true },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()],
   resolve: {

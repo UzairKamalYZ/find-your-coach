@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import VenueCard from "@/components/VenueCard";
-import { SPORTS, VENUES } from "@/data/mock";
+import VenueBookingDialog from "@/components/VenueBookingDialog";
+import { useSports, useVenues } from "@/hooks/use-api";
+import type { Venue } from "@/lib/types";
 
 const Venues = () => {
   const [sport, setSport] = useState<string>("All");
-  const filtered = useMemo(
-    () => VENUES.filter((v) => sport === "All" || v.sport === sport),
-    [sport]
-  );
+  const [reserving, setReserving] = useState<Venue | null>(null);
+  const { sports } = useSports();
+  const { data, isLoading, isError, refetch } = useVenues({ sport: sport === "All" ? undefined : sport });
+  const venues = data?.content ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,7 +25,7 @@ const Venues = () => {
 
       <section className="border-b border-border bg-card">
         <div className="container flex gap-2 overflow-x-auto py-6">
-          {["All", ...SPORTS.map((s) => s.name)].map((s) => (
+          {["All", ...sports.map((s) => s.name)].map((s) => (
             <button
               key={s}
               onClick={() => setSport(s)}
@@ -40,14 +42,19 @@ const Venues = () => {
       </section>
 
       <section className="container py-12 md:py-16">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="aspect-[4/3] animate-pulse rounded-2xl bg-muted" />)}</div>
+        ) : isError ? (
+          <p className="py-20 text-center text-muted-foreground">Couldn't load venues. <button className="font-semibold text-accent underline" onClick={() => refetch()}>Try again</button></p>
+        ) : venues.length === 0 ? (
           <p className="py-20 text-center text-muted-foreground">No venues for this sport yet.</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((v, i) => <VenueCard key={v.id} venue={v} index={i} />)}
+            {venues.map((v, i) => <VenueCard key={v.id} venue={v} index={i} onReserve={setReserving} />)}
           </div>
         )}
       </section>
+      <VenueBookingDialog venue={reserving} onClose={() => setReserving(null)} />
     </div>
   );
 };

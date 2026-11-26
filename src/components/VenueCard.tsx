@@ -1,14 +1,16 @@
 import { Star, MapPin } from "lucide-react";
-import type { Venue } from "@/data/mock";
+import type { Venue } from "@/lib/types";
+import { resolveImage } from "@/lib/images";
+import { money } from "@/lib/format";
 
-const VenueCard = ({ venue, index = 0 }: { venue: Venue; index?: number }) => (
+const VenueCard = ({ venue, index = 0, onReserve }: { venue: Venue; index?: number; onReserve?: (v: Venue) => void }) => (
   <article
     className="group relative animate-float-up overflow-hidden rounded-2xl shadow-card transition-all duration-500 hover:-translate-y-1 hover:shadow-elevate"
     style={{ animationDelay: `${index * 80}ms` }}
   >
     <div className="relative aspect-[4/3] overflow-hidden">
       <img
-        src={venue.image}
+        src={resolveImage(venue.image)}
         alt={venue.name}
         loading="lazy"
         width={800}
@@ -27,8 +29,8 @@ const VenueCard = ({ venue, index = 0 }: { venue: Venue; index?: number }) => (
         <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-accent text-accent" />{venue.rating}</span>
       </div>
       <div className="mt-3 flex items-end justify-between">
-        <p className="font-display text-xl">£{venue.pricePerHour}<span className="text-sm font-sans text-primary-foreground/70">/hr</span></p>
-        <span className="rounded-full bg-gradient-accent px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">Reserve</span>
+        <p className="font-display text-xl">{money(venue.pricePerHour)}<span className="text-sm font-sans text-primary-foreground/70">/hr</span></p>
+        <button type="button" onClick={() => onReserve?.(venue)} className="rounded-full bg-gradient-accent px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary transition-transform hover:scale-105">Reserve</button>
       </div>
     </div>
   </article>
