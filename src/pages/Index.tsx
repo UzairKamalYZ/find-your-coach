@@ -28,7 +28,7 @@ const Index = () => {
   const [reserving, setReserving] = useState<Venue | null>(null);
   const navigate = useNavigate();
   const { sports: SPORTS } = useSports();
-  const { data: featured } = useTrainers({ featured: true, size: 4 });
+  const { data: featured, isError: coachesUnavailable } = useTrainers({ featured: true, size: 4 });
   const { data: venues } = useVenues({ size: 4 });
   const { data: stats } = usePublicStats();
   const runSearch = () => {
@@ -185,6 +185,7 @@ const Index = () => {
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {(featured?.content ?? []).map((t, i) => <TrainerCard key={t.id} trainer={t} index={i} />)}
+            {coachesUnavailable && <p className="col-span-full text-muted-foreground">Coaches can't be loaded right now. Please try again shortly.</p>}
           </div>
         </div>
       </section>

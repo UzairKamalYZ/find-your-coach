@@ -101,6 +101,12 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
     }
   }
   if (res.status === 204) return undefined as T;
+  // A static host (e.g. Cloudflare SPA fallback) answers unknown /api paths with index.html and status 200.
+  // Never treat a non-JSON body as API data.
+  const contentType = res.headers.get("content-type") ?? "";
+  if (res.ok && !contentType.includes("json")) {
+    throw new ApiError(503, "The FindMyTrainer server is not available right now.", "API_UNAVAILABLE");
+  }
   const text = await res.text();
   const data = text ? safeJson(text) : undefined;
   if (!res.ok) {
