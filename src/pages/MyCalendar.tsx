@@ -48,16 +48,16 @@ const MyCalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-gradient-hero pt-24 pb-32">
-        <Navbar />
+      <Navbar />
+      <section className="bg-hero pb-12 pt-32 text-primary-foreground md:pb-16 md:pt-40">
         <div className="container">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Schedule</p>
           <h1 className="mt-2 font-display text-5xl text-primary-foreground md:text-6xl">My Calendar</h1>
           <p className="mt-3 text-primary-foreground/70">{upcoming.length} upcoming · {past.length} past sessions</p>
         </div>
-      </div>
+      </section>
 
-      <div className="container -mt-20 pb-20">
+      <div className="container py-12 md:py-16">
         <Section title="Upcoming Sessions" empty="No upcoming sessions. Book one with a trainer!" items={upcoming}
           onCancel={cancel} onReschedule={setMoving} />
         {past.length > 0 && (
