@@ -51,7 +51,7 @@ main() {
         export SERVER_TOMCAT_ACCESSLOG_SUFFIX=
         export SERVER_TOMCAT_ACCESSLOG_FILE_DATE_FORMAT=
         export SERVER_TOMCAT_ACCESSLOG_BUFFERED=false
-        export SERVER_TOMCAT_ACCESSLOG_PATTERN='%{yyyy-MM-dd HH:mm:ss}t [access] %{CF-Connecting-IP}i "%r" %s %b %Dms'
+        export SERVER_TOMCAT_ACCESSLOG_PATTERN='%{yyyy-MM-dd HH:mm:ss}t [access] %{CF-Connecting-IP}i "%r" %s %b %{ms}Tms'
     fi
     HEALTH_URL="http://127.0.0.1:$PORT/actuator/health"
 
