@@ -42,6 +42,17 @@ main() {
     export APP_CORS_ALLOWED_ORIGINS="${APP_CORS_ALLOWED_ORIGINS:-https://coach.kamtechsolutions.eu}"
     # The H2 console needs no login; it must stay off while the API is public.
     export H2_CONSOLE_ENABLED="${H2_CONSOLE_ENABLED:-false}"
+    # One line per request in app.log: time, visitor IP (Cloudflare passes it on), request,
+    # status, bytes, duration. DEPLOY_ACCESS_LOG=false turns it off.
+    if [ "${DEPLOY_ACCESS_LOG:-true}" = "true" ]; then
+        export SERVER_TOMCAT_ACCESSLOG_ENABLED=true
+        export SERVER_TOMCAT_ACCESSLOG_DIRECTORY=/dev
+        export SERVER_TOMCAT_ACCESSLOG_PREFIX=stdout
+        export SERVER_TOMCAT_ACCESSLOG_SUFFIX=
+        export SERVER_TOMCAT_ACCESSLOG_FILE_DATE_FORMAT=
+        export SERVER_TOMCAT_ACCESSLOG_BUFFERED=false
+        export SERVER_TOMCAT_ACCESSLOG_PATTERN='%{yyyy-MM-dd HH:mm:ss}t [access] %{CF-Connecting-IP}i "%r" %s %b %Dms'
+    fi
     HEALTH_URL="http://127.0.0.1:$PORT/actuator/health"
 
     cd "$REPO_DIR" || exit 1

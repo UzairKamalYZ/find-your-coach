@@ -48,7 +48,7 @@ Or run it in the foreground: `./backend/deployment/deploy.sh` (Ctrl-C stops it a
 | Where | What is in it |
 |---|---|
 | `journalctl --user -u find-my-coach-api` | The deploy log: starts, new commits, deploys, rollbacks |
-| `backend/deployment/.logs/app.log` | Spring Boot's output since the API last started |
+| `backend/deployment/.logs/app.log` | Spring Boot's output since the API last started, including one `[access]` line per request (visitor IP, request, status, time taken) |
 | `backend/deployment/.logs/build.log` | The last build and test run — look here when a commit was not deployed |
 
 ## Data and secrets
@@ -67,6 +67,7 @@ Environment variables, all optional (in the unit: `Environment=DEPLOY_POLL_SECON
 | `APP_CORS_ALLOWED_ORIGINS` | `https://coach.kamtechsolutions.eu` | Frontend origins allowed to call the API |
 | `APP_JWT_SECRET` | from `backend/data/.jwt-secret` | JWT signing secret |
 | `H2_CONSOLE_ENABLED` | `false` | Keep it off: the console needs no login |
+| `DEPLOY_ACCESS_LOG` | `true` | Log every request to `app.log` |
 | `JAVA_OPTS` | (none) | Extra JVM options, e.g. `-Xmx512m` |
 | `DEPLOY_BRANCH` | `main` | Branch to follow |
 | `DEPLOY_REMOTE` | `origin` | Git remote to fetch from |
