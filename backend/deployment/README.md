@@ -10,15 +10,25 @@ It builds the jar (`mvn package`, tests included), starts it with `java -jar` on
 then every minute it:
 
 1. restarts the API if it has died;
-2. asks GitHub whether `main` has moved. If it has, it fast-forwards the checkout. If anything
-   under `backend/` changed, it builds and tests the new code, restarts the API on the new
-   jar and waits for `/actuator/health` to report `UP`. Frontend-only commits are pulled
-   without restarting the API.
+2. asks GitHub whether `main` has moved. If it has, it fast-forwards the checkout and hands
+   over to the new commit's version of `deploy.sh`, so changes to the script, including the
+   settings it gives the API, apply to the very deploy that brings them in. That version:
+   - builds and tests the backend if its code changed (anything in `backend/` outside
+     `backend/deployment/`);
+   - restarts the API if the jar or its settings changed;
+   - waits for `/actuator/health` to report `UP`.
+
+   Frontend-only commits are pulled without restarting the API.
 
 If the build or the tests fail, the checkout is rolled back and the API keeps running the
 last good version. If the new version isn't healthy within `DEPLOY_HEALTH_TIMEOUT` seconds,
-the checkout is rolled back and the previous jar is started again. Either way, that commit
-is skipped until `main` moves again.
+the checkout is rolled back and the previous jar is started again by the previous version
+of `deploy.sh`, with its own settings. Either way, that commit is skipped until `main` moves
+again.
+
+Each version of the script starts from the environment the service started the first one
+with (saved in `deployment/.run/base.env`), so a setting one version adds can't carry over
+into another. After changing the unit's `Environment=` lines, restart the service.
 
 `~/FindMyTrainer/find-your-coach` is also where the app is worked on, so the script only
 updates it while it is on `main` with no uncommitted changes to tracked files; otherwise it

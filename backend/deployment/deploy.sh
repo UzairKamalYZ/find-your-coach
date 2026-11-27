@@ -4,9 +4,10 @@
 #
 # Builds the backend (mvn package) and starts it, then every DEPLOY_POLL_SECONDS:
 #   - restarts the API if it has died;
-#   - asks GitHub whether main has moved; if it has: pulls it and, when anything under
-#     backend/ changed, builds and tests it, restarts the API on the new jar and checks
-#     /actuator/health.
+#   - asks GitHub whether main has moved; if it has: pulls it and hands over to the new
+#     commit's version of this script, which builds and tests the backend if it changed,
+#     restarts the API if its jar or settings changed, and checks /actuator/health.
+#     So changes to this script apply to the very deploy that brings them in.
 # A commit that fails to build or fails its tests is rolled back and skipped; the API
 # keeps running the last good version. A commit that starts but does not report healthy
 # is rolled back, and the previous jar is started again. Commits that only touch the
@@ -36,6 +37,15 @@ main() {
     PID_FILE="$RUN_DIR/app.pid"
     JAR="$RUN_DIR/app.jar"                # the jar the API runs from
     PREVIOUS_JAR="$RUN_DIR/app.previous.jar"
+    SKIPPED_FILE="$RUN_DIR/skipped"       # a commit that could not be deployed
+
+    # The environment the service started this script with. Each version of this script
+    # hands over to the next with exactly this, so settings one version sets can't leak
+    # into another (e.g. a bad setting into the version a rollback goes back to).
+    mkdir -p "$RUN_DIR"
+    if [ -z "${DEPLOY_HANDOVER:-}" ]; then
+        (umask 077; export -p >"$RUN_DIR/base.env")
+    fi
 
     # Settings passed to Spring Boot (see backend/src/main/resources/application.yaml)
     export PORT="${PORT:-9090}"
@@ -62,28 +72,20 @@ main() {
     jwt_secret
     trap 'log "stopping"; stop; exit 0' INT TERM
 
-    if checkout_ok >/dev/null && fetch && behind; then
+    # Set when the previous version of this script hands over to this one after pulling
+    # a new commit: the commit to go back to if this one can't be deployed.
+    local rollback_to="${1:-}"
+
+    if [ -z "$rollback_to" ] && checkout_ok >/dev/null && fetch && behind &&
+        [ "$(git rev-parse "$REMOTE/$BRANCH")" != "$(cat "$SKIPPED_FILE" 2>/dev/null)" ]; then
         log "checkout is behind $REMOTE/$BRANCH — updating before the first start"
         pull || die "could not fast-forward to $REMOTE/$BRANCH (see above)"
     fi
-    # After a deploy this script exec's itself with the new version already running.
-    if ! jar_current; then
-        # The jar is missing or was built from other backend code (e.g. after a commit
-        # made in this checkout). If the build fails, a running API keeps running.
-        if build; then
-            stop
-            install_jar
-        elif ! is_running || [ ! -f "$JAR" ]; then
-            die "build failed — see backend/deployment/.logs/build.log"
-        fi
-    fi
-    is_running || start
-    healthy || log "WARNING: API does not report healthy at $HEALTH_URL — see backend/deployment/.logs/app.log"
+    deploy_head "$rollback_to"
     local deployed   # the commit the API is running
     deployed="$(git rev-parse HEAD)"
     log "running $(git rev-parse --short HEAD) on port $PORT; checking $REMOTE/$BRANCH every ${POLL_SECONDS}s"
 
-    local skipped=""   # a commit that could not be deployed — not retried until main moves again
     local paused=""    # why the checkout can't be updated right now (logged once)
     while true; do
         sleep "$POLL_SECONDS" &
@@ -96,7 +98,8 @@ main() {
         local target previous why
         target="$(git rev-parse "$REMOTE/$BRANCH")"
         [ "$target" = "$deployed" ] && continue
-        [ "$target" = "$skipped" ] && continue
+        # a commit that could not be deployed — not retried until main moves again
+        [ "$target" = "$(cat "$SKIPPED_FILE" 2>/dev/null)" ] && continue
         if ! why="$(checkout_ok)"; then
             [ "$why" != "$paused" ] && log "NOT deploying yet — $why"
             paused="$why"
@@ -107,34 +110,84 @@ main() {
         log "new commit on $BRANCH: $(git log -1 --format='%h %s' "$target")"
         if [ "$previous" != "$target" ] && ! behind; then
             log "NOT deployed — this checkout has commits that $REMOTE/$BRANCH doesn't"
-            skipped="$target"
+            echo "$target" >"$SKIPPED_FILE"
             continue
         fi
-        pull || { log "NOT deployed — could not fast-forward"; skipped="$target"; continue; }
-        if jar_current; then
-            log "no backend changes — API keeps running"
-            deployed="$(git rev-parse HEAD)"
-            exec "$SELF"   # pick up any change to this script
+        if ! pull; then
+            log "NOT deployed — could not fast-forward"
+            echo "$target" >"$SKIPPED_FILE"
+            continue
         fi
+        # Hand over to the new commit's version of this script, so changes to it (and to
+        # the settings it gives the API) apply to this deploy. It rolls back to $previous
+        # if the new commit can't be deployed.
+        handover "$previous"
+    done
+}
+
+# Brings the API in line with HEAD: rebuilds it when the backend code changed, restarts
+# it when the jar or the settings this script gives it changed, starts it when it is not
+# running. Given a commit to roll back to, a version that fails to build or to report
+# healthy is undone: the checkout goes back to that commit, and that commit's version of
+# this script takes over and starts the previous jar again.
+deploy_head() {
+    local rollback_to="$1" installed="" changed=""
+    if ! jar_current; then
         if build; then
             log "deploying $(git rev-parse --short HEAD)"
             stop
             install_jar
-            start
-            if healthy; then
-                log "deployed $(git rev-parse --short HEAD)"
-                exec "$SELF"   # carry on as the new version of this script
-            fi
-            log "new version does not report healthy — rolling back (see backend/deployment/.logs/app.log)"
-            stop
-            restore_jar
-            start
-            healthy || log "WARNING: the previous version does not report healthy either"
+            installed=yes
+        elif [ -n "$rollback_to" ]; then
+            roll_back "$rollback_to"
+        elif ! is_running || [ ! -f "$JAR" ]; then
+            die "build failed — see backend/deployment/.logs/build.log"
+        else
+            log "WARNING: build failed — the API keeps running the jar it has"
         fi
-        git reset --quiet --keep "$previous"
-        log "NOT deployed — staying on $(git rev-parse --short "$previous")"
-        skipped="$target"
-    done
+    fi
+    if is_running && [ "$(cat "$RUN_DIR/app.settings" 2>/dev/null)" != "$(settings_id)" ]; then
+        log "settings for the API changed — restarting it"
+        stop
+    fi
+    if ! is_running; then
+        start
+        changed=yes
+    fi
+    if healthy; then
+        if [ -n "$rollback_to" ]; then
+            if [ -n "$changed" ]; then log "deployed $(git rev-parse --short HEAD)"
+            else log "updated to $(git rev-parse --short HEAD) — nothing changed for the API"; fi
+        fi
+        return 0
+    fi
+    if [ -n "$rollback_to" ] && [ -n "$changed" ]; then
+        log "new version does not report healthy — rolling back (see backend/deployment/.logs/app.log)"
+        stop
+        [ -n "$installed" ] && restore_jar
+        roll_back "$rollback_to"
+    fi
+    log "WARNING: API does not report healthy at $HEALTH_URL — see backend/deployment/.logs/app.log"
+}
+
+# Puts the checkout back on the given commit, marks the current one as skipped and hands
+# over to that commit's version of this script.
+roll_back() {
+    git rev-parse HEAD >"$SKIPPED_FILE"
+    git reset --quiet --keep "$1" || die "could not go back to $(git rev-parse --short "$1")"
+    log "NOT deployed — back on $(git rev-parse --short HEAD)"
+    handover
+}
+
+# Runs the version of this script now on disk in place of this one, with the environment
+# the service started the first version with.
+handover() {
+    exec env -i DEPLOY_HANDOVER=1 bash -c '. "$1" && shift && exec "$@"' _ "$RUN_DIR/base.env" "$SELF" "$@"
+}
+
+# Identifies the settings this script gives the API; start() records it.
+settings_id() {
+    { env | grep -E '^(PORT=|APP_|H2_|SERVER_|SPRING_|JAVA_OPTS=)' | sort; } | sha256sum | cut -d' ' -f1
 }
 
 log() { printf '%s [deploy] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
@@ -182,8 +235,11 @@ behind() {
 
 pull() { git merge --quiet --ff-only "$REMOTE/$BRANCH"; }
 
-# Identifies the backend/ code at a commit: equal ids mean nothing in backend/ changed.
-backend_tree() { git rev-parse "$1:backend"; }
+# Identifies the backend code at a commit (backend/ except this deployment folder): equal
+# ids mean the jar does not need rebuilding.
+backend_tree() {
+    git ls-tree -r "$1" -- backend | grep -v $'\tbackend/deployment/' | sha256sum | cut -d' ' -f1
+}
 
 # True when the API's jar was built from the backend code at HEAD.
 jar_current() {
@@ -228,6 +284,7 @@ start() {
     # Runs from backend/ so the H2 database stays at backend/data/
     (cd "$BACKEND_DIR" && exec java ${JAVA_OPTS:-} -jar "$JAR") >>"$LOG_DIR/app.log" 2>&1 &
     echo $! >"$PID_FILE"
+    settings_id >"$RUN_DIR/app.settings"
     log "started API (pid $!)"
 }
 
