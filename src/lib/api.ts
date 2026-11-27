@@ -1,7 +1,16 @@
 import type { AuthResponse } from "./types";
 
-/** Base URL of the backend API. In dev, Vite proxies /api to the Spring Boot server (see vite.config.ts). */
-export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "/api/v1";
+/** Production API, served from this machine through the Cloudflare tunnel. */
+const PUBLIC_API_URL = "https://coachbff.kamtechsolutions.eu/api/v1";
+
+/** Pages opened on localhost use Vite's /api proxy to the local Spring Boot server (see vite.config.ts). */
+const isLocalhost =
+  typeof window !== "undefined" && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+
+/** Base URL of the backend API. VITE_API_URL overrides it. */
+export const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
+  (isLocalhost ? "/api/v1" : PUBLIC_API_URL);
 
 const TOKENS_KEY = "fmt_tokens";
 
