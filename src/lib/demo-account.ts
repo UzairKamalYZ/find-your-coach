@@ -1,32 +1,11 @@
+import type { ApiUser, Provider } from "./types";
+
+/** Roles a person can pick when signing up. Admin accounts are created by the platform, not via signup. */
 export type AccountRole = "trainer" | "trainee";
-export type SocialProvider = "Google" | "Apple" | "Facebook" | "Microsoft";
+export type SocialProvider = Exclude<Provider, "Email">;
 
-export type User = {
-  email: string;
-  name: string;
-  city: string;
-  avatar?: string;
-  role: AccountRole;
-  phone?: string;
-  provider?: SocialProvider | "Email";
-  bio?: string;
-  sports?: string;
-  goals?: string;
-  level?: string;
-  experience?: string;
-  qualifications?: string;
-};
+/** The signed-in account, as returned by GET /api/v1/me. */
+export type User = ApiUser;
 
-export const normalizeUser = (user: Partial<User> & Pick<User, "email" | "name" | "city">): User => ({
-  ...user,
-  role: user.role === "trainer" ? "trainer" : "trainee",
-});
-
-export const createSocialDemoUser = (provider: SocialProvider, role: AccountRole): User => ({
-  email: `alex.${provider.toLowerCase()}@example.com`,
-  name: "Alex Morgan (demo)",
-  city: "",
-  phone: "",
-  role,
-  provider,
-});
+/** Demo social sign-ins use a fixed sample identity per provider (the backend mirrors this). */
+export const demoSocialEmail = (provider: SocialProvider) => `alex.${provider.toLowerCase()}@example.com`;

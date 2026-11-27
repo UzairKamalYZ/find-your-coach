@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Dumbbell, User, LogIn } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 
 const Navbar = ({ solid = false }: { solid?: boolean }) => {
   const { user } = useAuth();
@@ -29,9 +30,13 @@ const Navbar = ({ solid = false }: { solid?: boolean }) => {
           <NavLink to="/trainers" className={linkCls}>Trainers</NavLink>
           <NavLink to="/venues" className={linkCls}>Venues</NavLink>
           {user && <NavLink to="/my-calendar" className={linkCls}>My Calendar</NavLink>}
+          {user?.role === "trainer" && <NavLink to="/coach" className={linkCls}>Coach Hub</NavLink>}
+          {user?.role === "admin" && <NavLink to="/admin" className={linkCls}>Admin</NavLink>}
         </nav>
 
         {user ? (
+          <div className="flex items-center gap-2">
+          <NotificationBell />
           <button
             onClick={() => navigate("/profile")}
             className="flex items-center gap-2 rounded-full border-2 border-accent/40 bg-primary/40 px-3 py-1.5 backdrop-blur transition-colors hover:border-accent"
@@ -41,6 +46,7 @@ const Navbar = ({ solid = false }: { solid?: boolean }) => {
             </span>
             <span className="hidden pr-2 text-sm font-semibold text-primary-foreground sm:block">{user.name.split(" ")[0]}</span>
           </button>
+          </div>
         ) : (
           <Link
             to="/login"

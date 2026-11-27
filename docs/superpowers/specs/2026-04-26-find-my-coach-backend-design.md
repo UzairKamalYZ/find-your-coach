@@ -1,3 +1,6 @@
+> **Superseded (2026-11-26):** the backend was rebuilt on H2 with email/password auth and role-based features.
+> See [`docs/backend.md`](../../backend.md) for the current design. This file is kept for history.
+
 # Find-My-Coach Backend — Design Spec
 
 **Date:** 2026-04-26  

@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:backend": "cd backend && mvn spring-boot:run",
+    "test:backend": "cd backend && mvn test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

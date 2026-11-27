@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, Calendar, MapPin, Trophy, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TrainerCard from "@/components/TrainerCard";
 import VenueCard from "@/components/VenueCard";
-import { SPORTS, TRAINERS, VENUES } from "@/data/mock";
+import VenueBookingDialog from "@/components/VenueBookingDialog";
+import { usePublicStats, useSports, useTrainers, useVenues } from "@/hooks/use-api";
+import type { Venue } from "@/lib/types";
 import sportTennis from "@/assets/sport-tennis.jpg";
 import sportFootball from "@/assets/sport-football.jpg";
 import sportBasketball from "@/assets/sport-basketball.jpg";
@@ -21,6 +23,21 @@ const HERO_PHOTOS = [
 
 const Index = () => {
   const [sportIndex, setSportIndex] = useState(0);
+  const [searchSport, setSearchSport] = useState("");
+  const [searchCity, setSearchCity] = useState("");
+  const [reserving, setReserving] = useState<Venue | null>(null);
+  const navigate = useNavigate();
+  const { sports: SPORTS } = useSports();
+  const { data: featured } = useTrainers({ featured: true, size: 4 });
+  const { data: venues } = useVenues({ size: 4 });
+  const { data: stats } = usePublicStats();
+  const runSearch = () => {
+    const p = new URLSearchParams();
+    if (searchSport) p.set("sport", searchSport);
+    if (searchCity.trim()) p.set("q", searchCity.trim());
+    navigate(`/trainers${p.toString() ? `?${p}` : ""}`);
+  };
+  const plus = (n?: number) => (n === undefined ? "–" : n >= 1000 ? `${Math.floor(n / 100) / 10}K` : String(n));
 
   useEffect(() => {
     const id = setInterval(() => setSportIndex((i) => (i + 1) % ROTATING_SPORTS.length), 2200);
@@ -56,25 +73,26 @@ const Index = () => {
             <div className="mt-10 flex flex-col gap-3 rounded-2xl bg-primary-foreground/10 p-3 backdrop-blur-md md:flex-row md:items-center">
               <div className="flex flex-1 items-center gap-3 rounded-xl bg-background/95 px-4 py-3 text-primary">
                 <Trophy className="h-5 w-5 text-accent" />
-                <select className="w-full bg-transparent font-semibold focus:outline-none">
-                  <option>Any sport</option>
+                <select value={searchSport} onChange={(e) => setSearchSport(e.target.value)} aria-label="Sport" className="w-full bg-transparent font-semibold focus:outline-none">
+                  <option value="">Any sport</option>
                   {SPORTS.map((s) => <option key={s.name}>{s.name}</option>)}
                 </select>
               </div>
               <div className="flex flex-1 items-center gap-3 rounded-xl bg-background/95 px-4 py-3 text-primary">
                 <MapPin className="h-5 w-5 text-accent" />
-                <input placeholder="City or postcode" className="w-full bg-transparent font-semibold placeholder:text-muted-foreground focus:outline-none" />
+                <input value={searchCity} onChange={(e) => setSearchCity(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runSearch()} aria-label="City" placeholder="City or postcode" className="w-full bg-transparent font-semibold placeholder:text-muted-foreground focus:outline-none" />
               </div>
-              <Link
-                to="/trainers"
+              <button
+                type="button"
+                onClick={runSearch}
                 className="flex items-center justify-center gap-2 rounded-xl bg-gradient-accent px-6 py-3 font-bold uppercase tracking-wider text-primary shadow-glow transition-transform hover:scale-[1.02]"
               >
                 <Search className="h-5 w-5" /> Search
-              </Link>
+              </button>
             </div>
 
             <div className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
-              {[["500+", "Coaches"], ["120+", "Venues"], ["12K", "Sessions booked"]].map(([n, l]) => (
+              {[[plus(stats?.coaches), "Coaches"], [plus(stats?.venues), "Venues"], [plus(stats?.sessionsBooked), "Sessions booked"]].map(([n, l]) => (
                 <div key={l}>
                   <p className="font-display text-4xl text-accent">{n}</p>
                   <p className="text-xs uppercase tracking-widest text-primary-foreground/60">{l}</p>
@@ -115,7 +133,7 @@ const Index = () => {
           {SPORTS.map((s) => (
             <Link
               key={s.name}
-              to="/trainers"
+              to={`/trainers?sport=${encodeURIComponent(s.name)}`}
               className="group flex shrink-0 items-center gap-3 rounded-full border border-border bg-background px-5 py-3 transition-all hover:border-accent hover:shadow-card"
             >
               <span className="text-2xl">{s.emoji}</span>
@@ -166,7 +184,7 @@ const Index = () => {
             </Link>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {TRAINERS.map((t, i) => <TrainerCard key={t.id} trainer={t} index={i} />)}
+            {(featured?.content ?? []).map((t, i) => <TrainerCard key={t.id} trainer={t} index={i} />)}
           </div>
         </div>
       </section>
@@ -183,7 +201,7 @@ const Index = () => {
           </Link>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {VENUES.map((v, i) => <VenueCard key={v.id} venue={v} index={i} />)}
+          {(venues?.content ?? []).map((v, i) => <VenueCard key={v.id} venue={v} index={i} onReserve={setReserving} />)}
         </div>
       </section>
 
@@ -209,6 +227,7 @@ const Index = () => {
           <p className="font-bold uppercase tracking-widest text-primary">Train · Compete · Win</p>
         </div>
       </footer>
+      <VenueBookingDialog venue={reserving} onClose={() => setReserving(null)} />
     </div>
   );
 };

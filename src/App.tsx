@@ -12,8 +12,10 @@ import Venues from "./pages/Venues.tsx";
 import Login from "./pages/Login.tsx";
 import Profile from "./pages/Profile.tsx";
 import MyCalendar from "./pages/MyCalendar.tsx";
+import CoachDashboard from "./pages/CoachDashboard.tsx";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } } });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-calendar" element={<MyCalendar />} />
+            <Route path="/coach" element={<CoachDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

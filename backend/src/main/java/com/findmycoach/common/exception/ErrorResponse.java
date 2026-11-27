@@ -1,9 +1,8 @@
 package com.findmycoach.common.exception;
 
+import java.time.Instant;
 import java.util.Map;
 
-public record ErrorResponse(String error, Map<String, String> details) {
-    public static ErrorResponse of(String error) {
-        return new ErrorResponse(error, null);
-    }
+/** Shape of every error body returned by the API. */
+public record ErrorResponse(int status, String code, String error, Map<String, String> details, String path, Instant timestamp) {
 }

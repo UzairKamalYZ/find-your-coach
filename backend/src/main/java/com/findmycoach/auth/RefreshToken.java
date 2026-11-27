@@ -11,7 +11,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "refresh_tokens")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class RefreshToken {
 
     @Id
@@ -22,12 +24,16 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(unique = true, nullable = false)
-    private String token;
+    /** SHA-256 of the opaque token; the raw value is only ever held by the client. */
+    @Column(nullable = false, unique = true, length = 64)
+    private String tokenHash;
 
     @Column(nullable = false)
     private Instant expiresAt;
 
     @Column(nullable = false)
-    private boolean revoked = false;
+    private boolean revoked;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 }
