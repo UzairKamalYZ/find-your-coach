@@ -67,13 +67,17 @@ main() {
         pull || die "could not fast-forward to $REMOTE/$BRANCH (see above)"
     fi
     # After a deploy this script exec's itself with the new version already running.
-    if ! is_running; then
-        if [ ! -f "$JAR" ] || [ "$(cat "$RUN_DIR/app.commit" 2>/dev/null)" != "$(backend_tree HEAD)" ]; then
-            build || die "build failed — see backend/deployment/.logs/build.log"
+    if ! jar_current; then
+        # The jar is missing or was built from other backend code (e.g. after a commit
+        # made in this checkout). If the build fails, a running API keeps running.
+        if build; then
+            stop
             install_jar
+        elif ! is_running || [ ! -f "$JAR" ]; then
+            die "build failed — see backend/deployment/.logs/build.log"
         fi
-        start
     fi
+    is_running || start
     healthy || log "WARNING: API does not report healthy at $HEALTH_URL — see backend/deployment/.logs/app.log"
     local deployed   # the commit the API is running
     deployed="$(git rev-parse HEAD)"
@@ -107,7 +111,7 @@ main() {
             continue
         fi
         pull || { log "NOT deployed — could not fast-forward"; skipped="$target"; continue; }
-        if [ "$(backend_tree "$previous")" = "$(backend_tree HEAD)" ]; then
+        if jar_current; then
             log "no backend changes — API keeps running"
             deployed="$(git rev-parse HEAD)"
             exec "$SELF"   # pick up any change to this script
@@ -180,6 +184,11 @@ pull() { git merge --quiet --ff-only "$REMOTE/$BRANCH"; }
 
 # Identifies the backend/ code at a commit: equal ids mean nothing in backend/ changed.
 backend_tree() { git rev-parse "$1:backend"; }
+
+# True when the API's jar was built from the backend code at HEAD.
+jar_current() {
+    [ -f "$JAR" ] && [ "$(cat "$RUN_DIR/app.commit" 2>/dev/null)" = "$(backend_tree HEAD)" ]
+}
 
 # Builds the jar, running the tests unless DEPLOY_RUN_TESTS=false.
 build() {
