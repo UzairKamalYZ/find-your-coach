@@ -1,0 +1,19 @@
+# systemd user unit — keeps backend/deployment/deploy.sh running (and so the API) across
+# crashes and reboots. Assumes the repository is at ~/FindMyTrainer/find-your-coach.
+# Install steps: backend/deployment/README.md.
+
+[Unit]
+Description=FindMyTrainer API (Spring Boot on :9090, follows main)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/FindMyTrainer/find-your-coach
+ExecStart=%h/FindMyTrainer/find-your-coach/backend/deployment/deploy.sh
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

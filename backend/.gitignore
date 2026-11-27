@@ -1,3 +1,5 @@
 target/
 data/
 *.log
+deployment/.run/
+deployment/.logs/
