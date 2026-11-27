@@ -141,3 +141,8 @@
   50% { box-shadow: 0 0 0 18px hsl(17 100% 60% / 0); }
 }
 .animate-pulse-glow { animation: pulse-glow 2.2s ease-in-out infinite; }
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { overflow-x: hidden; }
+}
