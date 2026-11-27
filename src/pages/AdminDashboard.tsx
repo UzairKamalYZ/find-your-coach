@@ -98,7 +98,7 @@ const Overview = () => {
         <Card label="Venue revenue" value={money(s.venueRevenue)} />
         <Card label="Cancelled / no-show" value={`${s.bookingsByStatus.CANCELLED} / ${s.bookingsByStatus.NO_SHOW}`} />
       </div>
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 font-display text-2xl">Sessions in the next 14 days</h2>
           <div className="flex h-40 items-end gap-1 rounded-xl border border-border bg-card p-4">

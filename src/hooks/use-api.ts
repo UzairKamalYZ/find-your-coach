@@ -39,7 +39,7 @@ export const useVenueAvailability = (id: string | undefined, from?: string, to?:
 /** Active sports from the API, falling back to the built-in list so filters render instantly. */
 export const useSports = () => {
   const q = useQuery({ queryKey: ["sports"], staleTime: 5 * 60_000, queryFn: () => api<Sport[]>("/sports", { auth: false }) });
-  const sports = q.data?.length ? q.data.map((s) => ({ name: s.name, emoji: s.emoji ?? "🏅" })) : SPORTS;
+  const sports = Array.isArray(q.data) && q.data.length ? q.data.map((s) => ({ name: s.name, emoji: s.emoji ?? "🏅" })) : SPORTS;
   return { ...q, sports };
 };
 
